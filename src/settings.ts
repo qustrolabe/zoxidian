@@ -1,5 +1,7 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
-import ZoxidianPlugin, { applyAging } from "./main";
+import ZoxidianPlugin from "./main";
+import { applyAging } from "./frecency";
+import { FILE_ICON_SVG } from "./utils";
 
 export interface ZoxidianSettings {
 	maxItems: number;
@@ -8,6 +10,7 @@ export interface ZoxidianSettings {
 	showFrecencyBadge: boolean;
 	showVisitsBadge: boolean;
 	maxAge: number;
+	recordOnEveryVisit: boolean;
 }
 
 export const DEFAULT_SETTINGS: ZoxidianSettings = {
@@ -17,6 +20,7 @@ export const DEFAULT_SETTINGS: ZoxidianSettings = {
 	showFrecencyBadge: true,
 	showVisitsBadge: true,
 	maxAge: 9000,
+	recordOnEveryVisit: false,
 };
 
 export class ZoxidianSettingTab extends PluginSettingTab {
@@ -91,6 +95,22 @@ export class ZoxidianSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
+			.setName("Record score on every visit")
+			.setDesc(
+				"Off (default): score increments only when you open a note that has no existing tab. " +
+				"Switching focus to an already-open tab does not count, but closing and reopening does. " +
+				"On: score increments every time the note becomes active, including tab switches."
+			)
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.recordOnEveryVisit)
+					.onChange(async (value) => {
+						this.plugin.settings.recordOnEveryVisit = value;
+						await this.plugin.persistData();
+					})
+			);
+
+		new Setting(containerEl)
 			.setName("Show frecency badge")
 			.setDesc("Display the frecency score badge (accent colour) next to each note.")
 			.addToggle((toggle) =>
@@ -134,11 +154,7 @@ export class ZoxidianSettingTab extends PluginSettingTab {
 			const row = previewWrap.createEl("div", { cls: "zoxidian-item" });
 
 			const iconWrap = row.createEl("span", { cls: "zoxidian-item-icon" });
-			iconWrap.innerHTML =
-				`<svg viewBox="0 0 24 24" width="14" height="14" fill="none" ` +
-				`stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">` +
-				`<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>` +
-				`<polyline points="14 2 14 8 20 8"/></svg>`;
+			iconWrap.innerHTML = FILE_ICON_SVG;
 
 			row.createEl("span", {
 				cls: "zoxidian-item-name",
@@ -170,6 +186,11 @@ export class ZoxidianSettingTab extends PluginSettingTab {
 
 		let updateStats: () => void = () => {};
 
+		let pendingMaxAge: number | null = null;
+		let applyBtnEl: HTMLButtonElement | null = null;
+		let showWarning: (num: number, total: number) => void = () => {};
+		let hideWarning: () => void = () => {};
+
 		new Setting(containerEl)
 			.setName("Max age")
 			.setDesc(
@@ -184,15 +205,60 @@ export class ZoxidianSettingTab extends PluginSettingTab {
 					.onChange(async (value) => {
 						const num = parseInt(value, 10);
 						if (!isNaN(num) && num > 0) {
-							this.plugin.settings.maxAge = num;
-							// Immediately apply aging with the new threshold.
-							applyAging(this.plugin.files, num);
-							await this.plugin.persistData();
-							this.plugin.view?.redraw();
-							updateStats();
+							const total = this.plugin.getTotalScore();
+							if (num < total) {
+								pendingMaxAge = num;
+								showWarning(num, total);
+							} else {
+								pendingMaxAge = null;
+								hideWarning();
+								this.plugin.settings.maxAge = num;
+								applyAging(this.plugin.files, num);
+								await this.plugin.persistData();
+								this.plugin.view?.redraw();
+								updateStats();
+							}
+						} else {
+							pendingMaxAge = null;
+							hideWarning();
 						}
 					})
+			)
+			.addButton((btn) => {
+				btn.setButtonText("Apply").setWarning();
+				applyBtnEl = btn.buttonEl;
+				applyBtnEl.style.display = "none";
+				btn.onClick(async () => {
+					if (pendingMaxAge === null) return;
+					this.plugin.settings.maxAge = pendingMaxAge;
+					applyAging(this.plugin.files, pendingMaxAge);
+					await this.plugin.persistData();
+					this.plugin.view?.redraw();
+					updateStats();
+					pendingMaxAge = null;
+					hideWarning();
+				});
+			});
+
+		const maxAgeWarningEl = containerEl.createEl("p", { cls: "zoxidian-maxage-warning" });
+		maxAgeWarningEl.style.display = "none";
+
+		showWarning = (num: number, total: number) => {
+			const scale = num / total;
+			const pruneCount = Object.values(this.plugin.files)
+				.filter(e => e.score * scale < 1).length;
+			maxAgeWarningEl.setText(
+				`Reducing to ${num} will prune ${pruneCount} note(s) ` +
+				`(current total: ${total.toFixed(1)}).`
 			);
+			maxAgeWarningEl.style.display = "";
+			if (applyBtnEl) applyBtnEl.style.display = "";
+		};
+
+		hideWarning = () => {
+			maxAgeWarningEl.style.display = "none";
+			if (applyBtnEl) applyBtnEl.style.display = "none";
+		};
 
 		// Stats
 		const statsEl = containerEl.createEl("div", { cls: "zoxidian-stats" });

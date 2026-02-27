@@ -1,5 +1,5 @@
 import { mock, describe, it, expect } from "bun:test";
-import type { FileEntry } from "../src/main";
+import type { FileEntry } from "../src/types";
 
 // Stub obsidian before the plugin module loads.
 // obsidian is an esbuild external (not a real npm module), so it must be
@@ -23,7 +23,7 @@ mock.module("obsidian", () => ({
 }));
 
 // Dynamic import so the mock is registered before the module loads.
-const { getFrecency, applyAging } = await import("../src/main");
+const { getFrecency, applyAging } = await import("../src/frecency");
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -35,7 +35,7 @@ const WEEK = 604_800_000;
 const NOW  = 1_700_000_000_000;
 
 function entry(score: number, msAgo: number): FileEntry {
-	return { path: "test/Note.md", score, lastAccess: NOW - msAgo };
+	return { score, lastAccess: NOW - msAgo };
 }
 
 // ---------------------------------------------------------------------------
@@ -84,10 +84,10 @@ describe("getFrecency", () => {
 // applyAging tests
 // ---------------------------------------------------------------------------
 
-function makeFiles(...scores: number[]): Record<string, import("../src/main").FileEntry> {
-	const files: Record<string, import("../src/main").FileEntry> = {};
+function makeFiles(...scores: number[]): Record<string, import("../src/types").FileEntry> {
+	const files: Record<string, import("../src/types").FileEntry> = {};
 	scores.forEach((score, i) => {
-		files[`note${i}.md`] = { path: `note${i}.md`, score, lastAccess: NOW };
+		files[`note${i}.md`] = { score, lastAccess: NOW };
 	});
 	return files;
 }

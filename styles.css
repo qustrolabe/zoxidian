@@ -224,6 +224,14 @@
 	color: var(--interactive-accent) !important;
 }
 
+/* ---- Max-age inline warning ---- */
+.zoxidian-maxage-warning {
+	color: var(--text-error);
+	font-size: var(--font-ui-small);
+	margin: 0 0 8px;
+	line-height: 1.4;
+}
+
 /* ============================================================
    Zoxidian — search modal styles
    ============================================================ */

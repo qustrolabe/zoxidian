@@ -1,11 +1,11 @@
 import { App, Modal, TFile } from "obsidian";
 import type ZoxidianPlugin from "./main";
-import type { FileEntry } from "./main";
+import type { FileEntry } from "./types";
 
 export class ZoxidianSearchModal extends Modal {
 	private plugin: ZoxidianPlugin;
 	private query = "";
-	private results: Array<{ entry: FileEntry; frecency: number }> = [];
+	private results: Array<{ path: string; entry: FileEntry; frecency: number }> = [];
 	private selectedIndex = 0;
 	private listEl!: HTMLElement;
 
@@ -60,8 +60,8 @@ export class ZoxidianSearchModal extends Modal {
 
 		this.results = q === ""
 			? all
-			: all.filter(({ entry }) => {
-				const basename = entry.path.split("/").pop()?.replace(/\.md$/i, "") ?? entry.path;
+			: all.filter(({ path }) => {
+				const basename = path.split("/").pop()?.replace(/\.md$/i, "") ?? path;
 				return basename.toLowerCase().includes(q);
 			});
 
@@ -80,8 +80,8 @@ export class ZoxidianSearchModal extends Modal {
 			return;
 		}
 
-		this.results.forEach(({ entry }, index) => {
-			const file = this.app.vault.getAbstractFileByPath(entry.path);
+		this.results.forEach(({ path }, index) => {
+			const file = this.app.vault.getAbstractFileByPath(path);
 			if (!(file instanceof TFile)) return;
 
 			const row = this.listEl.createEl("div", {
@@ -123,12 +123,15 @@ export class ZoxidianSearchModal extends Modal {
 		const result = this.results[this.selectedIndex];
 		if (!result) return;
 
-		const file = this.app.vault.getAbstractFileByPath(result.entry.path);
+		const file = this.app.vault.getAbstractFileByPath(result.path);
 		if (!(file instanceof TFile)) return;
 
+		const mostRecent = this.app.workspace.getMostRecentLeaf();
 		const leaf = this.plugin.settings.openInNewTab
 			? this.app.workspace.getLeaf("tab")
-			: this.app.workspace.getMostRecentLeaf() ?? this.app.workspace.getLeaf();
+			: (mostRecent && mostRecent.getRoot() === this.app.workspace.rootSplit)
+				? mostRecent
+				: this.app.workspace.getLeaf("tab");
 
 		leaf.openFile(file);
 		this.close();
