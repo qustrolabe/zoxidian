@@ -14,7 +14,7 @@ export function applyAging(files: Record<string, FileEntry>, maxAge: number): vo
 	const total = Object.values(files).reduce((sum, e) => sum + e.score, 0);
 	if (total <= maxAge) return;
 
-	const scale = maxAge / total;
+	const scale = (maxAge * 0.9) / total;
 	for (const path of Object.keys(files)) {
 		const entry = files[path];
 		if (entry) {

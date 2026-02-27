@@ -109,10 +109,10 @@ describe("applyAging", () => {
 	});
 
 	it("scales scores proportionally when total exceeds maxAge", () => {
-		const files = makeFiles(100, 100); // total = 200, maxAge = 100 → scale 0.5
+		const files = makeFiles(100, 100); // total = 200, maxAge = 100 → scale = 90/200 = 0.45
 		applyAging(files, 100);
-		expect(files["note0.md"]?.score).toBeCloseTo(50);
-		expect(files["note1.md"]?.score).toBeCloseTo(50);
+		expect(files["note0.md"]?.score).toBeCloseTo(45);
+		expect(files["note1.md"]?.score).toBeCloseTo(45);
 	});
 
 	it("prunes entries whose score drops below 1 after scaling", () => {
@@ -123,10 +123,11 @@ describe("applyAging", () => {
 		expect(files["note1.md"]).toBeUndefined();
 	});
 
-	it("total after aging does not exceed maxAge", () => {
+	it("total after aging is ~90% of maxAge", () => {
 		const files = makeFiles(300, 400, 500); // total = 1200
 		applyAging(files, 1000);
 		const total = Object.values(files).reduce((s, e) => s + e.score, 0);
-		expect(total).toBeLessThanOrEqual(1000);
+		expect(total).toBeCloseTo(1200 * (1000 * 0.9 / 1200), 5); // scale = 900/1200
+		expect(total).toBeLessThan(1000);
 	});
 });
