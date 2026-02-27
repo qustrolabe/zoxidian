@@ -1,0 +1,287 @@
+/* ============================================================
+   Zoxidian — sidebar panel styles
+   ============================================================ */
+
+/* Container that wraps the entire panel content */
+.zoxidian-container {
+	padding: 4px 0;
+	overflow-y: auto;
+}
+
+/* Empty-state message */
+.zoxidian-empty {
+	padding: 20px 12px;
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+	text-align: center;
+	line-height: 1.5;
+}
+
+/* The scrollable list */
+.zoxidian-list {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+}
+
+/* ---- Individual row ---- */
+.zoxidian-item {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 8px;
+	border-radius: 4px;
+	cursor: pointer;
+	user-select: none;
+	transition: background-color 80ms ease;
+}
+
+.zoxidian-item:hover {
+	background-color: var(--background-modifier-hover);
+}
+
+/* Highlight the currently-active file */
+.zoxidian-item.is-active {
+	background-color: var(--background-modifier-active-hover);
+}
+
+/* ---- File icon ---- */
+.zoxidian-item-icon {
+	display: flex;
+	align-items: center;
+	flex-shrink: 0;
+	color: var(--text-muted);
+	opacity: 0.7;
+}
+
+/* ---- File name ---- */
+.zoxidian-item-name {
+	flex: 1;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: var(--font-ui-small);
+	color: var(--text-normal);
+}
+
+/* ---- Badge cluster ---- */
+.zoxidian-badges {
+	display: flex;
+	align-items: center;
+	gap: 3px;
+	flex-shrink: 0;
+}
+
+/* Base badge style */
+.zoxidian-badge {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 20px;
+	padding: 1px 5px;
+	border-radius: 999px;
+	font-size: 10px;
+	font-weight: 600;
+	font-family: var(--font-monospace);
+	line-height: 1.4;
+}
+
+/* Frecency score — accent colour, prominent */
+.zoxidian-badge-frecency {
+	color: var(--text-on-accent);
+	background-color: var(--interactive-accent);
+}
+
+/* Base (visit count) score — muted, secondary */
+.zoxidian-badge-base {
+	color: var(--text-muted);
+	background-color: var(--background-modifier-border);
+}
+
+/* ---- Settings page ---- */
+.zoxidian-settings-desc {
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+	margin-bottom: 16px;
+	line-height: 1.5;
+}
+
+/* ---- Error row ---- */
+.zoxidian-item-error {
+	opacity: 0.5;
+	cursor: default;
+	color: var(--text-error);
+}
+
+/* ---- Settings preview ---- */
+.zoxidian-preview-wrap {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	padding: 4px 8px;
+	margin-bottom: 16px;
+	background-color: var(--background-secondary);
+}
+
+/* ---- Aging stats ---- */
+.zoxidian-stats {
+	margin-bottom: 16px;
+}
+
+.zoxidian-stats-grid {
+	display: flex;
+	gap: 12px;
+	margin-bottom: 8px;
+}
+
+.zoxidian-stat {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	flex: 1;
+	padding: 8px 6px;
+	border-radius: 6px;
+	background-color: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+}
+
+.zoxidian-stat-value {
+	font-size: var(--font-ui-medium);
+	font-weight: 600;
+	color: var(--text-normal);
+	font-family: var(--font-monospace);
+}
+
+.zoxidian-stat-label {
+	font-size: 10px;
+	color: var(--text-muted);
+	margin-top: 2px;
+	text-align: center;
+}
+
+.zoxidian-age-bar-wrap {
+	height: 4px;
+	background-color: var(--background-modifier-border);
+	border-radius: 2px;
+	overflow: hidden;
+}
+
+.zoxidian-age-bar {
+	height: 100%;
+	background-color: var(--interactive-accent);
+	border-radius: 2px;
+	transition: width 300ms ease;
+	min-width: 2px;
+}
+
+/* ---- Algorithm explanation ---- */
+.zoxidian-algo {
+	margin-bottom: 16px;
+}
+
+.zoxidian-algo-step {
+	margin-bottom: 12px;
+}
+
+.zoxidian-algo-heading {
+	font-size: var(--font-ui-small);
+	font-weight: 600;
+	color: var(--text-normal);
+	margin: 0 0 4px 0;
+}
+
+.zoxidian-algo-body {
+	font-size: var(--font-ui-small);
+	color: var(--text-muted);
+	margin: 0 0 6px 0;
+	line-height: 1.5;
+}
+
+.zoxidian-algo-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: var(--font-ui-small);
+}
+
+.zoxidian-algo-table th,
+.zoxidian-algo-table td {
+	text-align: left;
+	padding: 3px 8px;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.zoxidian-algo-table th {
+	color: var(--text-muted);
+	font-weight: 600;
+}
+
+.zoxidian-algo-table td {
+	color: var(--text-normal);
+}
+
+.zoxidian-algo-mult {
+	font-family: var(--font-monospace);
+	font-weight: 600;
+	color: var(--interactive-accent) !important;
+}
+
+/* ============================================================
+   Zoxidian — search modal styles
+   ============================================================ */
+
+.zoxidian-modal-input {
+	width: 100%;
+	padding: 10px 14px;
+	font-size: var(--font-ui-medium);
+	border: none;
+	border-bottom: 1px solid var(--background-modifier-border);
+	background: transparent;
+	color: var(--text-normal);
+	outline: none;
+	box-sizing: border-box;
+}
+
+.zoxidian-modal-list {
+	max-height: 400px;
+	overflow-y: auto;
+}
+
+.zoxidian-modal-item {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 6px 14px;
+	cursor: pointer;
+	border-radius: 4px;
+}
+
+.zoxidian-modal-item:hover,
+.zoxidian-modal-item.is-selected {
+	background-color: var(--background-modifier-hover);
+}
+
+.zoxidian-modal-item-name {
+	font-size: var(--font-ui-small);
+	color: var(--text-normal);
+	flex: 1;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.zoxidian-modal-item-path {
+	font-size: 10px;
+	color: var(--text-muted);
+	margin-left: 8px;
+	flex-shrink: 0;
+	max-width: 40%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.zoxidian-modal-empty {
+	padding: 20px 14px;
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+	text-align: center;
+}
