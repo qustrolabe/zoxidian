@@ -10,3 +10,11 @@ where you want to go next.
 - Sidebar panel sorted by frecency score
 - Quick search modal (command palette → _Search recent notes_)
 - Configurable max age and max items
+
+## Manual installation
+
+1. Go to **Releases** and download the `zip` archive.
+2. Unzip it into your vault's plugin folder:
+   `<vault>/.obsidian/plugins/zoxidian/`.
+3. In Obsidian: **Settings → Community plugins → Installed plugins** → enable
+   **Zoxidian**.
