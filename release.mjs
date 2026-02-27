@@ -31,6 +31,6 @@ writeFileSync("versions.json", JSON.stringify(versions, null, "\t") + "\n");
 // Commit and tag
 execSync("git add package.json manifest.json versions.json");
 execSync(`git commit -m "${next}"`);
-execSync(`git tag ${next}`);
+execSync(`git tag -a ${next} -m "${next}"`);
 
 console.log(`Released ${next} — run \`git push --follow-tags\` when ready.`);
