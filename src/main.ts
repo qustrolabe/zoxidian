@@ -83,7 +83,7 @@ export function getFrecency(entry: FileEntry, now = Date.now()): number {
  * Whole numbers are shown without decimals; others show one decimal place.
  */
 function formatScore(n: number): string {
-	return Number.isInteger(n) ? String(n) : n.toFixed(1);
+	return n.toFixed(1);
 }
 
 function debounce<T extends (...args: Parameters<T>) => void>(fn: T, ms: number): T {
@@ -177,7 +177,7 @@ export class ZoxidianView extends ItemView {
 				if (this.plugin.settings.showVisitsBadge) {
 					const baseBadge = badgeWrap.createEl("span", {
 						cls: "zoxidian-badge zoxidian-badge-base",
-						text: String(entry.score),
+						text: entry.score.toFixed(1),
 					});
 					baseBadge.setAttribute("aria-label", "Total visits");
 				}
@@ -185,7 +185,7 @@ export class ZoxidianView extends ItemView {
 				// Tooltip
 				row.title =
 					`Frecency: ${frecency.toFixed(2)}\n` +
-					`Visits: ${entry.score}\n` +
+					`Visits: ${entry.score.toFixed(1)}\n` +
 					`Last access: ${new Date(entry.lastAccess).toLocaleString()}\n` +
 					`Path: ${entry.path}`;
 
