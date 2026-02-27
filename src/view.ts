@@ -97,18 +97,18 @@ export class ZoxidianView extends ItemView {
 					frecBadge.setAttribute("aria-label", "Frecency score");
 				}
 
-				if (this.plugin.settings.showVisitsBadge) {
+				if (this.plugin.settings.showScoreBadge) {
 					const baseBadge = badgeWrap.createEl("span", {
 						cls: "zoxidian-badge zoxidian-badge-base",
 						text: formatScore(entry.score),
 					});
-					baseBadge.setAttribute("aria-label", "Total visits");
+					baseBadge.setAttribute("aria-label", "Score");
 				}
 
 				// Tooltip
 				row.title =
 					`Frecency: ${frecency.toFixed(2)}\n` +
-					`Visits: ${entry.score.toFixed(1)}\n` +
+					`Score: ${entry.score.toFixed(1)}\n` +
 					`Last access: ${new Date(entry.lastAccess).toLocaleString()}\n` +
 					`Path: ${path}`;
 

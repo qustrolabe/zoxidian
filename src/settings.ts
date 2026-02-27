@@ -8,7 +8,7 @@ export interface ZoxidianSettings {
 	excludePaths: string;
 	openInNewTab: boolean;
 	showFrecencyBadge: boolean;
-	showVisitsBadge: boolean;
+	showScoreBadge: boolean;
 	maxAge: number;
 	recordOnEveryVisit: boolean;
 }
@@ -18,7 +18,7 @@ export const DEFAULT_SETTINGS: ZoxidianSettings = {
 	excludePaths: "",
 	openInNewTab: false,
 	showFrecencyBadge: true,
-	showVisitsBadge: true,
+	showScoreBadge: true,
 	maxAge: 9000,
 	recordOnEveryVisit: false,
 };
@@ -125,13 +125,13 @@ export class ZoxidianSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("Show visits badge")
-			.setDesc("Display the raw visit count badge (muted) next to each note.")
+			.setName("Show score badge")
+			.setDesc("Display the score badge (muted) next to each note.")
 			.addToggle((toggle) =>
 				toggle
-					.setValue(this.plugin.settings.showVisitsBadge)
+					.setValue(this.plugin.settings.showScoreBadge)
 					.onChange(async (value) => {
-						this.plugin.settings.showVisitsBadge = value;
+						this.plugin.settings.showScoreBadge = value;
 						await this.plugin.persistData();
 						this.plugin.view?.redraw();
 						updatePreview();
@@ -170,7 +170,7 @@ export class ZoxidianSettingTab extends PluginSettingTab {
 				});
 			}
 
-			if (this.plugin.settings.showVisitsBadge) {
+			if (this.plugin.settings.showScoreBadge) {
 				badges.createEl("span", {
 					cls: "zoxidian-badge zoxidian-badge-base",
 					text: "4",
@@ -297,7 +297,7 @@ export class ZoxidianSettingTab extends PluginSettingTab {
 
 		const steps: Array<[string, string]> = [
 			[
-				"1 · Visit score",
+				"1 · Base score",
 				"Every time you open a note its base score increases by 1. " +
 				"A note opened 20 times has a base score of 20.",
 			],
