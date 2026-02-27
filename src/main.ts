@@ -108,7 +108,7 @@ export class ZoxidianView extends ItemView {
 
 	getViewType(): string   { return VIEW_TYPE_ZOXIDIAN; }
 	getDisplayText(): string { return "Zoxidian"; }
-	getIcon(): string        { return "trending-up"; }
+	getIcon(): string        { return "history"; }
 
 	async onOpen(): Promise<void> {
 		this.redraw();
@@ -297,7 +297,7 @@ export default class ZoxidianPlugin extends Plugin {
 			return this.view;
 		});
 
-		this.addRibbonIcon("trending-up", "Zoxidian", () => this.activateView());
+		this.addRibbonIcon("history", "Zoxidian", () => this.activateView());
 
 		this.addCommand({
 			id:   "open-panel",
