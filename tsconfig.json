@@ -1,26 +1,21 @@
 {
 	"compilerOptions": {
-		"baseUrl": "src",
 		"inlineSourceMap": true,
 		"inlineSources": true,
 		"module": "ESNext",
 		"target": "ES2017",
 		"allowJs": true,
-		"noImplicitAny": true,
-		"noImplicitThis": true,
+		"strict": true,
 		"noImplicitReturns": true,
-		"moduleResolution": "node",
+		"moduleResolution": "bundler",
 		"importHelpers": true,
 		"isolatedModules": true,
-		"strictNullChecks": true,
-		"strictBindCallApply": true,
-		"allowSyntheticDefaultImports": true,
-		"types": ["bun-types"],
+		"types": [
+			"bun-types"
+		],
 		"lib": [
 			"DOM",
-			"ES5",
-			"ES6",
-			"ES7"
+			"ES2017"
 		]
 	},
 	"include": [
