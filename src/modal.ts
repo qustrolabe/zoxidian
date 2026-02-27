@@ -1,129 +1,57 @@
-import { App, Modal, TFile } from "obsidian";
+import { App, SuggestModal, TFile, prepareFuzzySearch, renderMatches } from "obsidian";
 import type ZoxidianPlugin from "./main";
 import type { FileEntry } from "./types";
+import { formatScore } from "./utils";
 
-export class ZoxidianSearchModal extends Modal {
-	private plugin: ZoxidianPlugin;
-	private query = "";
-	private results: Array<{ path: string; entry: FileEntry; frecency: number }> = [];
-	private selectedIndex = 0;
-	private listEl!: HTMLElement;
+type SortedEntry = { path: string; entry: FileEntry; frecency: number; matches: [number, number][] | null };
 
-	constructor(app: App, plugin: ZoxidianPlugin) {
+export class ZoxidianSearchModal extends SuggestModal<SortedEntry> {
+	constructor(app: App, private plugin: ZoxidianPlugin) {
 		super(app);
-		this.plugin = plugin;
+		this.setPlaceholder("Search recent notes…");
+		this.setInstructions([
+			{ command: "↑↓", purpose: "navigate" },
+			{ command: "↵",  purpose: "open" },
+			{ command: "esc", purpose: "dismiss" },
+		]);
 	}
 
-	onOpen(): void {
-		const { contentEl } = this;
-		contentEl.empty();
-		contentEl.addClass("zoxidian-modal");
-
-		// Search input
-		const inputEl = contentEl.createEl("input", { cls: "zoxidian-modal-input" });
-		inputEl.type = "text";
-		inputEl.placeholder = "Search recent notes…";
-		inputEl.focus();
-
-		// Results list
-		this.listEl = contentEl.createEl("div", { cls: "zoxidian-modal-list" });
-
-		// Populate with all entries on open
-		this.updateResults("");
-
-		inputEl.addEventListener("input", () => {
-			this.query = inputEl.value;
-			this.updateResults(this.query);
-		});
-
-		inputEl.addEventListener("keydown", (e: KeyboardEvent) => {
-			if (e.key === "ArrowDown") {
-				e.preventDefault();
-				this.selectedIndex = Math.min(this.selectedIndex + 1, this.results.length - 1);
-				this.renderList();
-			} else if (e.key === "ArrowUp") {
-				e.preventDefault();
-				this.selectedIndex = Math.max(this.selectedIndex - 1, 0);
-				this.renderList();
-			} else if (e.key === "Enter") {
-				e.preventDefault();
-				this.openSelected();
-			} else if (e.key === "Escape") {
-				this.close();
-			}
-		});
-	}
-
-	private updateResults(query: string): void {
+	getSuggestions(query: string): SortedEntry[] {
 		const all = this.plugin.getSortedEntries();
-		const q = query.toLowerCase().trim();
-
-		this.results = q === ""
-			? all
-			: all.filter(({ path }) => {
-				const basename = path.split("/").pop()?.replace(/\.md$/i, "") ?? path;
-				return basename.toLowerCase().includes(q);
-			});
-
-		this.selectedIndex = 0;
-		this.renderList();
+		const q = query.trim();
+		if (!q) return all.map(e => ({ ...e, matches: null }));
+		const fuzzy = prepareFuzzySearch(q);
+		return all
+			.map(e => ({ ...e, matches: fuzzy(e.path)?.matches ?? null }))
+			.filter(e => e.matches !== null);
 	}
 
-	private renderList(): void {
-		this.listEl.empty();
+	renderSuggestion({ path, entry, frecency, matches }: SortedEntry, el: HTMLElement): void {
+		const file = this.app.vault.getAbstractFileByPath(path);
+		if (!(file instanceof TFile)) return;
 
-		if (this.results.length === 0) {
-			this.listEl.createEl("div", {
-				cls: "zoxidian-modal-empty",
-				text: "No matching notes.",
+		const row = el.createEl("div", { cls: "zoxidian-suggestion" });
+
+		const info = row.createEl("div", { cls: "zoxidian-suggestion-info" });
+		renderMatches(info.createEl("span", { cls: "suggestion-title" }), path, matches);
+
+		const badges = row.createEl("div", { cls: "zoxidian-badges" });
+		if (this.plugin.settings.showFrecencyBadge) {
+			badges.createEl("span", {
+				cls: "zoxidian-badge zoxidian-badge-frecency",
+				text: formatScore(frecency),
 			});
-			return;
 		}
-
-		this.results.forEach(({ path }, index) => {
-			const file = this.app.vault.getAbstractFileByPath(path);
-			if (!(file instanceof TFile)) return;
-
-			const row = this.listEl.createEl("div", {
-				cls: "zoxidian-modal-item" + (index === this.selectedIndex ? " is-selected" : ""),
+		if (this.plugin.settings.showScoreBadge) {
+			badges.createEl("span", {
+				cls: "zoxidian-badge zoxidian-badge-base",
+				text: formatScore(entry.score),
 			});
-
-			row.createEl("span", {
-				cls: "zoxidian-modal-item-name",
-				text: file.basename,
-			});
-
-			const parentPath = file.parent?.path ?? "";
-			if (parentPath && parentPath !== "/") {
-				row.createEl("span", {
-					cls: "zoxidian-modal-item-path",
-					text: parentPath,
-				});
-			}
-
-			row.addEventListener("click", () => {
-				this.selectedIndex = index;
-				this.openSelected();
-			});
-
-			row.addEventListener("mouseover", () => {
-				if (this.selectedIndex !== index) {
-					this.selectedIndex = index;
-					this.renderList();
-				}
-			});
-		});
-
-		// Scroll selected row into view
-		const selected = this.listEl.querySelector(".is-selected") as HTMLElement | null;
-		selected?.scrollIntoView({ block: "nearest" });
+		}
 	}
 
-	private openSelected(): void {
-		const result = this.results[this.selectedIndex];
-		if (!result) return;
-
-		const file = this.app.vault.getAbstractFileByPath(result.path);
+	onChooseSuggestion({ path }: SortedEntry, _evt: MouseEvent | KeyboardEvent): void {
+		const file = this.app.vault.getAbstractFileByPath(path);
 		if (!(file instanceof TFile)) return;
 
 		const mostRecent = this.app.workspace.getMostRecentLeaf();
@@ -134,10 +62,5 @@ export class ZoxidianSearchModal extends Modal {
 				: this.app.workspace.getLeaf("tab");
 
 		leaf.openFile(file);
-		this.close();
-	}
-
-	onClose(): void {
-		this.contentEl.empty();
 	}
 }

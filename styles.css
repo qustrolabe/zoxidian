@@ -236,60 +236,15 @@
    Zoxidian — search modal styles
    ============================================================ */
 
-.zoxidian-modal-input {
-	width: 100%;
-	padding: 10px 14px;
-	font-size: var(--font-ui-medium);
-	border: none;
-	border-bottom: 1px solid var(--background-modifier-border);
-	background: transparent;
-	color: var(--text-normal);
-	outline: none;
-	box-sizing: border-box;
-}
-
-.zoxidian-modal-list {
-	max-height: 400px;
-	overflow-y: auto;
-}
-
-.zoxidian-modal-item {
+.zoxidian-suggestion {
 	display: flex;
+	flex-direction: row;
 	align-items: center;
-	justify-content: space-between;
-	padding: 6px 14px;
-	cursor: pointer;
-	border-radius: 4px;
+	gap: 8px;
+	width: 100%;
 }
 
-.zoxidian-modal-item:hover,
-.zoxidian-modal-item.is-selected {
-	background-color: var(--background-modifier-hover);
-}
-
-.zoxidian-modal-item-name {
-	font-size: var(--font-ui-small);
-	color: var(--text-normal);
+.zoxidian-suggestion-info {
 	flex: 1;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.zoxidian-modal-item-path {
-	font-size: 10px;
-	color: var(--text-muted);
-	margin-left: 8px;
-	flex-shrink: 0;
-	max-width: 40%;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.zoxidian-modal-empty {
-	padding: 20px 14px;
-	color: var(--text-muted);
-	font-size: var(--font-ui-small);
-	text-align: center;
+	min-width: 0;
 }
