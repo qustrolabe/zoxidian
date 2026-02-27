@@ -42,6 +42,14 @@ export class ZoxidianView extends ItemView {
 
 	async onClose(): Promise<void> { /* nothing */ }
 
+	// Called by the plugin's handleRename before redraw() so the active
+	// highlight reflects the new path in the same render pass.
+	notifyRename(oldPath: string, newPath: string): void {
+		if (this.activeFilePath === oldPath) {
+			this.activeFilePath = newPath;
+		}
+	}
+
 	private openOrReveal(file: TFile): void {
 		// getLeaf(false) is Obsidian's standard "open in appropriate leaf":
 		// reuses the most recent non-pinned main-area leaf, never touches

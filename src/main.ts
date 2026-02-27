@@ -120,6 +120,7 @@ export default class ZoxidianPlugin extends Plugin {
 
 	clearData(): void {
 		this.files = {};
+		this.debouncedPersist();
 	}
 
 	// -------------------------------------------------------------------------
@@ -153,9 +154,22 @@ export default class ZoxidianPlugin extends Plugin {
 	handleRename(oldPath: string, newPath: string): void {
 		const entry = this.files[oldPath];
 		if (!entry) return;
-		this.files[newPath] = { ...entry };
+
+		// Merge into existing entry for newPath (if any), rather than overwriting.
+		const existing = this.files[newPath];
+		this.files[newPath] = existing
+			? { score: existing.score + entry.score, lastAccess: Math.max(existing.lastAccess, entry.lastAccess) }
+			: { ...entry };
 		delete this.files[oldPath];
-		this.persistData();
+
+		// Keep openInLeaf consistent so the next file-open isn't counted as fresh.
+		if (this.openInLeaf.has(oldPath)) {
+			this.openInLeaf.delete(oldPath);
+			this.openInLeaf.add(newPath);
+		}
+
+		this.view?.notifyRename(oldPath, newPath);  // update activeFilePath before redraw
+		this.debouncedPersist();   // was: this.persistData() — debounce for bulk folder moves
 		this.view?.redraw();
 	}
 
