@@ -11,6 +11,7 @@ export interface ZoxidianSettings {
 	showScoreBadge: boolean;
 	maxAge: number;
 	recordOnEveryVisit: boolean;
+	includeUntrackedInModal: boolean;
 }
 
 export const DEFAULT_SETTINGS: ZoxidianSettings = {
@@ -21,6 +22,7 @@ export const DEFAULT_SETTINGS: ZoxidianSettings = {
 	showScoreBadge: true,
 	maxAge: 9000,
 	recordOnEveryVisit: false,
+	includeUntrackedInModal: true,
 };
 
 export class ZoxidianSettingTab extends PluginSettingTab {
@@ -106,6 +108,21 @@ export class ZoxidianSettingTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.recordOnEveryVisit)
 					.onChange(async (value) => {
 						this.plugin.settings.recordOnEveryVisit = value;
+						await this.plugin.persistData();
+					})
+			);
+
+		new Setting(containerEl)
+			.setName("Include untracked files in search modal")
+			.setDesc(
+				"When enabled, the search modal lists all vault notes after tracked ones. " +
+				"Tracked notes (sorted by frecency) always appear first."
+			)
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.includeUntrackedInModal)
+					.onChange(async (value) => {
+						this.plugin.settings.includeUntrackedInModal = value;
 						await this.plugin.persistData();
 					})
 			);

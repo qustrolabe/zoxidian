@@ -188,7 +188,7 @@ export default class ZoxidianPlugin extends Plugin {
 	// Sorted entry list (used by the view and search modal)
 	// -------------------------------------------------------------------------
 
-	getSortedEntries(): Array<{ path: string; entry: FileEntry; frecency: number }> {
+	getSortedEntries(applyLimit = true): Array<{ path: string; entry: FileEntry; frecency: number }> {
 		let excludeRegex: RegExp | null = null;
 		if (this.settings.excludePaths.trim()) {
 			try {
@@ -200,11 +200,12 @@ export default class ZoxidianPlugin extends Plugin {
 
 		const now = Date.now();
 
-		return Object.entries(this.files)
+		const sorted = Object.entries(this.files)
 			.filter(([path]) => !excludeRegex || !excludeRegex.test(path))
 			.map(([path, entry]) => ({ path, entry, frecency: getFrecency(entry, now) }))
-			.sort((a, b) => b.frecency - a.frecency)
-			.slice(0, this.settings.maxItems);
+			.sort((a, b) => b.frecency - a.frecency);
+
+		return applyLimit ? sorted.slice(0, this.settings.maxItems) : sorted;
 	}
 
 	// -------------------------------------------------------------------------

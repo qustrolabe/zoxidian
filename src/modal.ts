@@ -35,9 +35,36 @@ export class ZoxidianSearchModal extends SuggestModal<SortedEntry> {
 	}
 
 	getSuggestions(query: string): SortedEntry[] {
-		const all = this.plugin.getSortedEntries();
+		// No cap in the modal — show all tracked files
+		const tracked = this.plugin.getSortedEntries(false);
+
+		let all: SortedEntry[];
+		if (this.plugin.settings.includeUntrackedInModal) {
+			const trackedPaths = new Set(tracked.map(e => e.path));
+
+			let excludeRegex: RegExp | null = null;
+			const ep = this.plugin.settings.excludePaths.trim();
+			if (ep) { try { excludeRegex = new RegExp(ep); } catch {} }
+
+			const untracked = this.app.vault.getMarkdownFiles()
+				.filter(f => !trackedPaths.has(f.path) && (!excludeRegex || !excludeRegex.test(f.path)))
+				.map(f => ({
+					path: f.path,
+					entry: { score: 0, lastAccess: 0 },
+					frecency: 0,
+					matches: null as [number, number][] | null,
+				}));
+
+			all = [
+				...tracked.map(e => ({ ...e, matches: null as [number, number][] | null })),
+				...untracked,
+			];
+		} else {
+			all = tracked.map(e => ({ ...e, matches: null as [number, number][] | null }));
+		}
+
 		const q = query.trim();
-		if (!q) return all.map(e => ({ ...e, matches: null }));
+		if (!q) return all;
 		const fuzzy = prepareFuzzySearch(q);
 		return all
 			.map(e => ({ ...e, matches: fuzzy(e.path)?.matches ?? null }))
