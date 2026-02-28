@@ -20,6 +20,7 @@ mock.module("obsidian", () => ({
 	},
 	prepareFuzzySearch: () => () => null,
 	renderMatches: () => {},
+	Notice: class { constructor(_msg: string) {} },
 }));
 
 // Dynamic imports so the mock is registered before any module loads.
