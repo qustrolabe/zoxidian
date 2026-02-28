@@ -8,6 +8,9 @@ Notes you open a lot or opened recently automatically rise to the top of the
 list in the sidebar. The plugin also adds a quick search modal, similar to
 `Ctrl+O` with results ranked by the same frecency score.
 
+<img width="374" height="168" alt="Obsidian_uOlp66g9ln" src="https://github.com/user-attachments/assets/f30d5574-362b-4fde-840e-a29d1a502724" />
+
+
 ## Features
 
 - Sidebar panel sorted by frecency score
