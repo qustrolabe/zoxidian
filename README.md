@@ -2,14 +2,16 @@
 
 An [Obsidian](https://obsidian.md) plugin that tracks which notes you visit and
 ranks them using the [zoxide](https://github.com/ajeetdsouza/zoxide) frecency
-algorithm — the same idea that makes the `cd` replacement so good at predicting
-where you want to go next.
+algorithm.
+
+Notes you open a lot or opened recently automatically rise to the top of the
+list in the sidebar. The plugin also adds a quick search modal, similar to
+`Ctrl+O` with results ranked by the same frecency score.
 
 ## Features
 
 - Sidebar panel sorted by frecency score
 - Quick search modal (command palette → _Search recent notes_)
-- Configurable max age and max items
 
 ## Manual installation
 
