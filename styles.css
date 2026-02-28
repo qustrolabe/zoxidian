@@ -98,6 +98,13 @@
 	background-color: var(--background-modifier-border);
 }
 
+/* Untracked — file exists in vault but has never been visited */
+.zoxidian-badge-untracked {
+	color: var(--text-faint);
+	background-color: transparent;
+	border: 1px dashed var(--background-modifier-border-hover);
+}
+
 /* ---- Settings page ---- */
 .zoxidian-settings-desc {
 	color: var(--text-muted);

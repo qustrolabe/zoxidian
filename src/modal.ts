@@ -1,9 +1,9 @@
-import { App, SuggestModal, TFile, prepareFuzzySearch, renderMatches } from "obsidian";
+import { App, SuggestModal, TFile, prepareFuzzySearch, renderMatches, Notice } from "obsidian";
 import type ZoxidianPlugin from "./main";
 import type { FileEntry } from "./types";
 import { formatScore } from "./utils";
 
-type SortedEntry = { path: string; entry: FileEntry; frecency: number; matches: [number, number][] | null };
+type SortedEntry = { path: string; entry: FileEntry; frecency: number; matches: [number, number][] | null; untracked?: boolean };
 
 export class ZoxidianSearchModal extends SuggestModal<SortedEntry> {
 	constructor(app: App, private plugin: ZoxidianPlugin) {
@@ -53,6 +53,7 @@ export class ZoxidianSearchModal extends SuggestModal<SortedEntry> {
 					entry: { score: 0, lastAccess: 0 },
 					frecency: 0,
 					matches: null as [number, number][] | null,
+					untracked: true as const,
 				}));
 
 			all = [
@@ -71,7 +72,7 @@ export class ZoxidianSearchModal extends SuggestModal<SortedEntry> {
 			.filter(e => e.matches !== null);
 	}
 
-	renderSuggestion({ path, entry, frecency, matches }: SortedEntry, el: HTMLElement): void {
+	renderSuggestion({ path, entry, frecency, matches, untracked }: SortedEntry, el: HTMLElement): void {
 		const file = this.app.vault.getAbstractFileByPath(path);
 		if (!(file instanceof TFile)) return;
 
@@ -81,17 +82,24 @@ export class ZoxidianSearchModal extends SuggestModal<SortedEntry> {
 		renderMatches(info.createEl("span", { cls: "suggestion-title" }), path, matches);
 
 		const badges = row.createEl("div", { cls: "zoxidian-badges" });
-		if (this.plugin.settings.showFrecencyBadge) {
+		if (untracked) {
 			badges.createEl("span", {
-				cls: "zoxidian-badge zoxidian-badge-frecency",
-				text: formatScore(frecency),
+				cls: "zoxidian-badge zoxidian-badge-untracked",
+				text: "untracked",
 			});
-		}
-		if (this.plugin.settings.showScoreBadge) {
-			badges.createEl("span", {
-				cls: "zoxidian-badge zoxidian-badge-base",
-				text: formatScore(entry.score),
-			});
+		} else {
+			if (this.plugin.settings.showFrecencyBadge) {
+				badges.createEl("span", {
+					cls: "zoxidian-badge zoxidian-badge-frecency",
+					text: formatScore(frecency),
+				});
+			}
+			if (this.plugin.settings.showScoreBadge) {
+				badges.createEl("span", {
+					cls: "zoxidian-badge zoxidian-badge-base",
+					text: formatScore(entry.score),
+				});
+			}
 		}
 	}
 
@@ -99,10 +107,12 @@ export class ZoxidianSearchModal extends SuggestModal<SortedEntry> {
 		const file = this.app.vault.getAbstractFileByPath(path);
 		if (!(file instanceof TFile)) return;
 
+		const isCtrlMeta = evt.ctrlKey || evt.metaKey;
+
 		let leaf;
-		if (evt instanceof KeyboardEvent && (evt.ctrlKey || evt.metaKey) && evt.altKey) {
+		if (isCtrlMeta && evt.altKey && evt instanceof KeyboardEvent) {
 			leaf = this.app.workspace.getLeaf("split");
-		} else if (evt instanceof KeyboardEvent && (evt.ctrlKey || evt.metaKey)) {
+		} else if (isCtrlMeta) {
 			leaf = this.app.workspace.getLeaf("tab");
 		} else {
 			const mostRecent = this.app.workspace.getMostRecentLeaf();
@@ -121,12 +131,21 @@ export class ZoxidianSearchModal extends SuggestModal<SortedEntry> {
 		if (!name) return;
 		this.close();
 		const path = name.endsWith(".md") ? name : `${name}.md`;
-		this.app.vault.create(path, "").then(file => {
+
+		const openInLeaf = (file: TFile) => {
 			const mostRecent = this.app.workspace.getMostRecentLeaf();
 			const leaf = (mostRecent && mostRecent.getRoot() === this.app.workspace.rootSplit)
 				? mostRecent
 				: this.app.workspace.getLeaf("tab");
 			leaf.openFile(file);
-		});
+		};
+
+		const existing = this.app.vault.getAbstractFileByPath(path);
+		if (existing instanceof TFile) {
+			openInLeaf(existing);
+			return;
+		}
+
+		this.app.vault.create(path, "").then(openInLeaf).catch(() => new Notice(`Could not create "${path}".`));
 	}
 }
