@@ -1,6 +1,6 @@
 /**
  * Format a frecency score for display.
- * Whole numbers are shown without decimals; others show one decimal place.
+ * Always render with one decimal place for stable badge width.
  */
 export function formatScore(n: number): string {
 	return n.toFixed(1);

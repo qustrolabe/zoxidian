@@ -260,10 +260,10 @@ export class ZoxidianSettingTab extends PluginSettingTab {
 		const maxAgeWarningEl = containerEl.createEl("p", { cls: "zoxidian-maxage-warning" });
 		maxAgeWarningEl.style.display = "none";
 
-		showWarning = (num: number, total: number) => {
-			const scale = num / total;
-			const pruneCount = Object.values(this.plugin.files)
-				.filter(e => e.score * scale < 1).length;
+			showWarning = (num: number, total: number) => {
+				const scale = (num * 0.9) / total;
+				const pruneCount = Object.values(this.plugin.files)
+					.filter(e => e.score * scale < 1).length;
 			maxAgeWarningEl.setText(
 				`Reducing to ${num} will prune ${pruneCount} note(s) ` +
 				`(current total: ${total.toFixed(1)}).`
@@ -326,7 +326,7 @@ export class ZoxidianSettingTab extends PluginSettingTab {
 			[
 				"3 · Aging",
 				"When the sum of all base scores exceeds Max age, every score is scaled down " +
-				"proportionally so the total equals Max age. " +
+				"proportionally so the total becomes 90% of Max age. " +
 				"Notes whose score falls below 1 are pruned. " +
 				"This bounds score growth and lets rarely-visited notes fade naturally.",
 			],
@@ -372,7 +372,6 @@ export class ZoxidianSettingTab extends PluginSettingTab {
 					.setWarning()
 					.onClick(async () => {
 						this.plugin.clearData();
-						await this.plugin.persistData();
 						this.plugin.view?.redraw();
 						updateStats();
 					})

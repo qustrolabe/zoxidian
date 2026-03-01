@@ -20,9 +20,9 @@ export default class ZoxidianPlugin extends Plugin {
 	files: Record<string, FileEntry> = {};
 	view: ZoxidianView | null = null;
 	private debouncedPersist!: () => void;
-	// Paths of files currently open in any leaf. Used to distinguish a fresh
-	// open (no existing leaf) from a tab switch (leaf already exists).
-	private openInLeaf = new Set<string>();
+	// Snapshot of open-path counts from the previous workspace state. This is
+	// used to decide whether a file-open is a fresh open or a tab switch.
+	private openPathCounts = new Map<string, number>();
 
 	// -------------------------------------------------------------------------
 	// Lifecycle
@@ -52,30 +52,21 @@ export default class ZoxidianPlugin extends Plugin {
 			callback: () => new ZoxidianSearchModal(this.app, this).open(),
 		});
 
-		// Seed openInLeaf from whatever is already open when the plugin loads.
-		this.app.workspace.iterateAllLeaves((leaf) => {
-			const f = (leaf.view as any)?.file;
-			if (f instanceof TFile) this.openInLeaf.add(f.path);
-		});
+		// Seed previous open-path snapshot from whatever is open at load time.
+		this.rebuildOpenPathCounts();
 
-		// When tabs are closed, remove their paths so a future open records again.
-		// We only remove here — additions happen inside the file-open handler.
 		this.registerEvent(
 			this.app.workspace.on("layout-change", () => {
-				const current = new Set<string>();
-				this.app.workspace.iterateAllLeaves((leaf) => {
-					const f = (leaf.view as any)?.file;
-					if (f instanceof TFile) current.add(f.path);
-				});
-				for (const path of this.openInLeaf) {
-					if (!current.has(path)) this.openInLeaf.delete(path);
-				}
+				this.rebuildOpenPathCounts();
 			})
 		);
 
 		this.registerEvent(
 			this.app.workspace.on("file-open", (file) => {
-				if (file instanceof TFile) this.recordVisit(file);
+				if (!(file instanceof TFile)) return;
+				const wasAlreadyOpen = (this.openPathCounts.get(file.path) ?? 0) > 0;
+				this.rebuildOpenPathCounts();
+				this.recordVisit(file, wasAlreadyOpen);
 			})
 		);
 
@@ -102,6 +93,17 @@ export default class ZoxidianPlugin extends Plugin {
 
 	onunload() { /* Obsidian cleans up registered events */ }
 
+	private rebuildOpenPathCounts(): void {
+		const next = new Map<string, number>();
+		this.app.workspace.iterateAllLeaves((leaf) => {
+			const f = (leaf.view as any)?.file;
+			if (f instanceof TFile) {
+				next.set(f.path, (next.get(f.path) ?? 0) + 1);
+			}
+		});
+		this.openPathCounts = next;
+	}
+
 	// -------------------------------------------------------------------------
 	// Data I/O
 	// -------------------------------------------------------------------------
@@ -127,11 +129,7 @@ export default class ZoxidianPlugin extends Plugin {
 	// Visit tracking
 	// -------------------------------------------------------------------------
 
-	recordVisit(file: TFile): void {
-		const wasAlreadyOpen = this.openInLeaf.has(file.path);
-		// Mark it open now regardless — so subsequent tab switches are recognised.
-		this.openInLeaf.add(file.path);
-
+	recordVisit(file: TFile, wasAlreadyOpen: boolean): void {
 		// In "on open" mode, skip if this file already had a leaf (tab switch).
 		if (!this.settings.recordOnEveryVisit && wasAlreadyOpen) return;
 
@@ -162,10 +160,11 @@ export default class ZoxidianPlugin extends Plugin {
 			: { ...entry };
 		delete this.files[oldPath];
 
-		// Keep openInLeaf consistent so the next file-open isn't counted as fresh.
-		if (this.openInLeaf.has(oldPath)) {
-			this.openInLeaf.delete(oldPath);
-			this.openInLeaf.add(newPath);
+		// Keep open-path snapshot consistent across renames.
+		const oldCount = this.openPathCounts.get(oldPath) ?? 0;
+		if (oldCount > 0) {
+			this.openPathCounts.delete(oldPath);
+			this.openPathCounts.set(newPath, (this.openPathCounts.get(newPath) ?? 0) + oldCount);
 		}
 
 		this.view?.notifyRename(oldPath, newPath);  // update activeFilePath before redraw

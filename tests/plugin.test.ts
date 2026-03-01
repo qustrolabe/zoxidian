@@ -1,4 +1,4 @@
-import { mock, describe, it, expect, beforeEach } from "bun:test";
+import { mock, describe, it, expect } from "bun:test";
 
 // Stub obsidian before any plugin module loads.
 mock.module("obsidian", () => ({
@@ -37,7 +37,7 @@ function makePlugin() {
 	const plugin = new (ZoxidianPlugin as any)() as any;
 	// Seed with safe defaults; tests override as needed.
 	plugin.files          = {};
-	plugin.openInLeaf     = new Set<string>();
+	plugin.openPathCounts = new Map<string, number>();
 	// debouncedPersist is assigned in onload(), so we must supply it here.
 	plugin.debouncedPersist = mock(() => {});
 	// Override async persistData so it never touches Obsidian's saveData().
@@ -46,6 +46,59 @@ function makePlugin() {
 	plugin.settings       = { ...DEFAULT_SETTINGS };
 	return plugin;
 }
+
+// ---------------------------------------------------------------------------
+// recordVisit
+// ---------------------------------------------------------------------------
+
+describe("recordVisit", () => {
+	it("creates a new entry and persists/redraws for a fresh open", () => {
+		const plugin = makePlugin();
+		plugin.view = { redraw: mock(() => {}) };
+		const nowSpy = mock(() => 1234);
+		const realNow = Date.now;
+		(Date as any).now = nowSpy;
+
+		plugin.recordVisit({ path: "a.md" } as any, false);
+
+		expect(plugin.files["a.md"]).toEqual({ score: 1, lastAccess: 1234 });
+		expect(plugin.debouncedPersist).toHaveBeenCalledTimes(1);
+		expect(plugin.view.redraw).toHaveBeenCalledTimes(1);
+		(Date as any).now = realNow;
+	});
+
+	it("updates an existing entry", () => {
+		const plugin = makePlugin();
+		plugin.files["a.md"] = { score: 2, lastAccess: 1000 };
+
+		plugin.recordVisit({ path: "a.md" } as any, false);
+
+		expect(plugin.files["a.md"]?.score).toBe(3);
+		expect(plugin.files["a.md"]?.lastAccess).toBeGreaterThanOrEqual(1000);
+	});
+
+	it("skips increment when file was already open and recordOnEveryVisit is off", () => {
+		const plugin = makePlugin();
+		plugin.settings.recordOnEveryVisit = false;
+		plugin.files["a.md"] = { score: 2, lastAccess: 1000 };
+
+		plugin.recordVisit({ path: "a.md" } as any, true);
+
+		expect(plugin.files["a.md"]).toEqual({ score: 2, lastAccess: 1000 });
+		expect(plugin.debouncedPersist).not.toHaveBeenCalled();
+	});
+
+	it("increments when file was already open and recordOnEveryVisit is on", () => {
+		const plugin = makePlugin();
+		plugin.settings.recordOnEveryVisit = true;
+		plugin.files["a.md"] = { score: 2, lastAccess: 1000 };
+
+		plugin.recordVisit({ path: "a.md" } as any, true);
+
+		expect(plugin.files["a.md"]?.score).toBe(3);
+		expect(plugin.debouncedPersist).toHaveBeenCalledTimes(1);
+	});
+});
 
 // ---------------------------------------------------------------------------
 // handleRename
@@ -72,34 +125,38 @@ describe("handleRename", () => {
 		expect(plugin.files["other.md"]).toEqual({ score: 3, lastAccess: 500 });
 	});
 
-	it("removes oldPath from openInLeaf when it was present", () => {
+	it("moves oldPath open-count to newPath when oldPath was open", () => {
 		const plugin = makePlugin();
 		plugin.files["a.md"] = { score: 1, lastAccess: 1 };
-		plugin.openInLeaf.add("a.md");
+		plugin.openPathCounts.set("a.md", 1);
 
 		plugin.handleRename("a.md", "b.md");
 
-		expect(plugin.openInLeaf.has("a.md")).toBe(false);
+		expect(plugin.openPathCounts.has("a.md")).toBe(false);
+		expect(plugin.openPathCounts.get("b.md")).toBe(1);
 	});
 
-	it("adds newPath to openInLeaf when oldPath was in the set", () => {
+	it("does NOT add newPath open-count when oldPath was absent", () => {
 		const plugin = makePlugin();
 		plugin.files["a.md"] = { score: 1, lastAccess: 1 };
-		plugin.openInLeaf.add("a.md");
+		// openPathCounts does NOT contain "a.md"
 
 		plugin.handleRename("a.md", "b.md");
 
-		expect(plugin.openInLeaf.has("b.md")).toBe(true);
+		expect(plugin.openPathCounts.has("b.md")).toBe(false);
 	});
 
-	it("does NOT add newPath to openInLeaf when oldPath was absent", () => {
+	it("adds old and new open-counts when both paths are open", () => {
 		const plugin = makePlugin();
 		plugin.files["a.md"] = { score: 1, lastAccess: 1 };
-		// openInLeaf does NOT contain "a.md"
+		plugin.files["b.md"] = { score: 1, lastAccess: 1 };
+		plugin.openPathCounts.set("a.md", 2);
+		plugin.openPathCounts.set("b.md", 1);
 
 		plugin.handleRename("a.md", "b.md");
 
-		expect(plugin.openInLeaf.has("b.md")).toBe(false);
+		expect(plugin.openPathCounts.has("a.md")).toBe(false);
+		expect(plugin.openPathCounts.get("b.md")).toBe(3);
 	});
 
 	it("merges scores when newPath already has an entry", () => {
@@ -203,5 +260,44 @@ describe("clearData", () => {
 		plugin.clearData();
 
 		expect(plugin.debouncedPersist).toHaveBeenCalledTimes(1);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// getSortedEntries
+// ---------------------------------------------------------------------------
+
+describe("getSortedEntries", () => {
+	it("returns at most maxItems when applyLimit is true", () => {
+		const plugin = makePlugin();
+		plugin.settings.maxItems = 1;
+		plugin.files["a.md"] = { score: 1, lastAccess: Date.now() };
+		plugin.files["b.md"] = { score: 2, lastAccess: Date.now() };
+
+		const rows = plugin.getSortedEntries(true);
+
+		expect(rows.length).toBe(1);
+	});
+
+	it("skips exclude filter when regex is invalid", () => {
+		const plugin = makePlugin();
+		plugin.settings.excludePaths = "[";
+		plugin.files["a.md"] = { score: 1, lastAccess: Date.now() };
+
+		const rows = plugin.getSortedEntries(true);
+
+		expect(rows.length).toBe(1);
+		expect(rows[0]?.path).toBe("a.md");
+	});
+
+	it("filters paths matching exclude regex", () => {
+		const plugin = makePlugin();
+		plugin.settings.excludePaths = "^Daily/";
+		plugin.files["Daily/note.md"] = { score: 5, lastAccess: Date.now() };
+		plugin.files["Work/note.md"] = { score: 5, lastAccess: Date.now() };
+
+		const rows = plugin.getSortedEntries(false);
+
+		expect(rows.map((r: any) => r.path)).toEqual(["Work/note.md"]);
 	});
 });

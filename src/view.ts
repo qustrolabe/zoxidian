@@ -58,7 +58,7 @@ export class ZoxidianView extends ItemView {
 	}
 
 	redraw(): void {
-		const container = this.containerEl.children[1] as HTMLElement;
+		const container = this.contentEl;
 		container.empty();
 		container.addClass("zoxidian-container");
 
