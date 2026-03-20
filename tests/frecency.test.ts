@@ -20,6 +20,7 @@ mock.module("obsidian", () => ({
 		addToggle(){ return this; }
 		addButton(){ return this; }
 	},
+	normalizePath: (path: string) => path,
 }));
 
 // Dynamic import so the mock is registered before the module loads.
