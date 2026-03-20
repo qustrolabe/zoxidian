@@ -1,4 +1,4 @@
-import { App, SuggestModal, TFile, prepareFuzzySearch, renderMatches, Notice } from "obsidian";
+import { App, SuggestModal, TFile, prepareFuzzySearch, renderMatches, Notice, normalizePath } from "obsidian";
 import type ZoxidianPlugin from "./main";
 import type { FileEntry } from "./types";
 import { formatScore } from "./utils";
@@ -46,15 +46,7 @@ export class ZoxidianSearchModal extends SuggestModal<SortedEntry> {
 			const ep = this.plugin.settings.excludePaths.trim();
 			if (ep) { try { excludeRegex = new RegExp(ep); } catch {} }
 
-			const untracked = this.app.vault.getMarkdownFiles()
-				.filter(f => !trackedPaths.has(f.path) && (!excludeRegex || !excludeRegex.test(f.path)))
-				.map(f => ({
-					path: f.path,
-					entry: { score: 0, lastAccess: 0 },
-					frecency: 0,
-					matches: null as [number, number][] | null,
-					untracked: true as const,
-				}));
+			const untracked = this.getUntrackedEntries(trackedPaths, excludeRegex);
 
 			all = [
 				...tracked.map(e => ({ ...e, matches: null as [number, number][] | null })),
@@ -73,9 +65,6 @@ export class ZoxidianSearchModal extends SuggestModal<SortedEntry> {
 	}
 
 	renderSuggestion({ path, entry, frecency, matches, untracked }: SortedEntry, el: HTMLElement): void {
-		const file = this.app.vault.getAbstractFileByPath(path);
-		if (!(file instanceof TFile)) return;
-
 		const row = el.createEl("div", { cls: "zoxidian-suggestion" });
 
 		const info = row.createEl("div", { cls: "zoxidian-suggestion-info" });
@@ -105,25 +94,12 @@ export class ZoxidianSearchModal extends SuggestModal<SortedEntry> {
 
 	onChooseSuggestion({ path }: SortedEntry, evt: MouseEvent | KeyboardEvent): void {
 		const file = this.app.vault.getAbstractFileByPath(path);
-		if (!(file instanceof TFile)) return;
-
-		const isCtrlMeta = evt.ctrlKey || evt.metaKey;
-
-		let leaf;
-		if (isCtrlMeta && evt.altKey && evt instanceof KeyboardEvent) {
-			leaf = this.app.workspace.getLeaf("split");
-		} else if (isCtrlMeta) {
-			leaf = this.app.workspace.getLeaf("tab");
-		} else {
-			const mostRecent = this.app.workspace.getMostRecentLeaf();
-			leaf = this.plugin.settings.openInNewTab
-				? this.app.workspace.getLeaf("tab")
-				: (mostRecent && mostRecent.getRoot() === this.app.workspace.rootSplit)
-					? mostRecent
-					: this.app.workspace.getLeaf("tab");
+		if (!(file instanceof TFile)) {
+			this.createMissingNote(path, evt);
+			return;
 		}
 
-		leaf.openFile(file);
+		this.pickLeaf(evt).openFile(file);
 	}
 
 	private createNote(): void {
@@ -147,5 +123,97 @@ export class ZoxidianSearchModal extends SuggestModal<SortedEntry> {
 		}
 
 		this.app.vault.create(path, "").then(openInLeaf).catch(() => new Notice(`Could not create "${path}".`));
+	}
+
+	private getUntrackedEntries(trackedPaths: Set<string>, excludeRegex: RegExp | null): SortedEntry[] {
+		const untracked = this.app.vault.getMarkdownFiles()
+			.filter(f => !trackedPaths.has(f.path) && (!excludeRegex || !excludeRegex.test(f.path)))
+			.map(f => ({
+				path: f.path,
+				entry: { score: 0, lastAccess: 0 },
+				frecency: 0,
+				matches: null as [number, number][] | null,
+				untracked: true as const,
+			}));
+
+		const knownPaths = new Set<string>([...trackedPaths, ...untracked.map(u => u.path)]);
+		const missing = this.getMissingLinkEntries(knownPaths, excludeRegex);
+
+		return [...untracked, ...missing];
+	}
+
+	private getMissingLinkEntries(knownPaths: Set<string>, excludeRegex: RegExp | null): SortedEntry[] {
+		const unresolved = this.app.metadataCache.unresolvedLinks ?? {};
+		const missingPaths = new Set<string>();
+
+		for (const [sourcePath, links] of Object.entries(unresolved)) {
+			for (const rawLink of Object.keys(links)) {
+				const linkpath = this.extractLinkpath(rawLink);
+				if (!linkpath) continue;
+				if (this.app.metadataCache.getFirstLinkpathDest(linkpath, sourcePath)) continue;
+
+				const path = this.resolveMissingLinkPath(linkpath, sourcePath);
+				if (!path) continue;
+				if (knownPaths.has(path)) continue;
+				if (excludeRegex && excludeRegex.test(path)) continue;
+
+				missingPaths.add(path);
+			}
+		}
+
+		return [...missingPaths].map(path => ({
+			path,
+			entry: { score: 0, lastAccess: 0 },
+			frecency: 0,
+			matches: null as [number, number][] | null,
+			untracked: true as const,
+		}));
+	}
+
+	private extractLinkpath(raw: string): string | null {
+		let linkpath = raw;
+		const pipe = linkpath.indexOf("|");
+		if (pipe !== -1) linkpath = linkpath.slice(0, pipe);
+		const hash = linkpath.indexOf("#");
+		if (hash !== -1) linkpath = linkpath.slice(0, hash);
+		linkpath = linkpath.trim();
+		return linkpath ? linkpath : null;
+	}
+
+	private resolveMissingLinkPath(linkpath: string, sourcePath: string): string | null {
+		const base = linkpath.endsWith(".md") ? linkpath : `${linkpath}.md`;
+		if (base.includes("://")) return null;
+
+		let path = base;
+		if (!base.includes("/")) {
+			const parent = this.app.fileManager.getNewFileParent(sourcePath, base);
+			path = parent.path ? `${parent.path}/${base}` : base;
+		}
+
+		return normalizePath(path);
+	}
+
+	private pickLeaf(evt: MouseEvent | KeyboardEvent) {
+		const isCtrlMeta = evt.ctrlKey || evt.metaKey;
+		if (isCtrlMeta && evt.altKey && evt instanceof KeyboardEvent) {
+			return this.app.workspace.getLeaf("split");
+		}
+		if (isCtrlMeta) {
+			return this.app.workspace.getLeaf("tab");
+		}
+
+		const mostRecent = this.app.workspace.getMostRecentLeaf();
+		return this.plugin.settings.openInNewTab
+			? this.app.workspace.getLeaf("tab")
+			: (mostRecent && mostRecent.getRoot() === this.app.workspace.rootSplit)
+				? mostRecent
+				: this.app.workspace.getLeaf("tab");
+	}
+
+	private createMissingNote(path: string, evt: MouseEvent | KeyboardEvent): void {
+		const leaf = this.pickLeaf(evt);
+		this.app.vault.create(path, "")
+			.then(file => leaf.openFile(file))
+			.catch(() => new Notice(`Could not create "${path}".`));
 	}
 }
