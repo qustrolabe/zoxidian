@@ -1,39 +1,6 @@
-import { mock, describe, it, expect } from "bun:test";
+import { describe, it, expect } from "bun:test";
 import type { FileEntry } from "../src/types";
-
-// Stub obsidian before the plugin module loads.
-// obsidian is an esbuild external (not a real npm module), so it must be
-// mocked for the test runner to resolve the import in main.ts.
-mock.module("obsidian", () => ({
-	App: class {},
-	ItemView: class {},
-	Menu: class {},
-	Modal: class {},
-	Plugin: class {},
-	SuggestModal: class {
-		app: any;
-		inputEl: { value: string };
-		scope: { register: ReturnType<typeof mock> };
-		constructor(app: any) {
-			this.app = app;
-			this.inputEl = { value: "" };
-			this.scope = { register: mock(() => {}) };
-		}
-		setPlaceholder() { return this; }
-		setInstructions() { return this; }
-	},
-	TFile: class {},
-	WorkspaceLeaf: class {},
-	PluginSettingTab: class {},
-	Setting: class {
-		setName()  { return this; }
-		setDesc()  { return this; }
-		addText()  { return this; }
-		addToggle(){ return this; }
-		addButton(){ return this; }
-	},
-	normalizePath: (path: string) => path,
-}));
+import "./obsidian-mock";
 
 // Dynamic import so the mock is registered before the module loads.
 const { getFrecency, applyAging } = await import("../src/frecency");
