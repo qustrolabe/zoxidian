@@ -10,6 +10,18 @@ mock.module("obsidian", () => ({
 	Menu: class {},
 	Modal: class {},
 	Plugin: class {},
+	SuggestModal: class {
+		app: any;
+		inputEl: { value: string };
+		scope: { register: ReturnType<typeof mock> };
+		constructor(app: any) {
+			this.app = app;
+			this.inputEl = { value: "" };
+			this.scope = { register: mock(() => {}) };
+		}
+		setPlaceholder() { return this; }
+		setInstructions() { return this; }
+	},
 	TFile: class {},
 	WorkspaceLeaf: class {},
 	PluginSettingTab: class {},
