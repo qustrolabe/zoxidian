@@ -18,7 +18,6 @@ interface PersistedData {
 export default class ZoxidianPlugin extends Plugin {
 	settings: ZoxidianSettings = { ...DEFAULT_SETTINGS };
 	files: Record<string, FileEntry> = {};
-	view: ZoxidianView | null = null;
 	private debouncedPersist!: () => void;
 	// Snapshot of open-path counts from the previous workspace state. This is
 	// used to decide whether a file-open is a fresh open or a tab switch.
@@ -34,8 +33,7 @@ export default class ZoxidianPlugin extends Plugin {
 		await this.initData();
 
 		this.registerView(VIEW_TYPE_ZOXIDIAN, (leaf) => {
-			this.view = new ZoxidianView(leaf, this);
-			return this.view;
+			return new ZoxidianView(leaf, this);
 		});
 
 		this.addRibbonIcon("history", "Zoxidian", () => this.activateView());
@@ -142,7 +140,7 @@ export default class ZoxidianPlugin extends Plugin {
 		}
 		applyAging(this.files, this.settings.maxAge);
 		this.debouncedPersist();
-		this.view?.redraw();
+		this.redrawViews();
 	}
 
 	getTotalScore(): number {
@@ -167,20 +165,38 @@ export default class ZoxidianPlugin extends Plugin {
 			this.openPathCounts.set(newPath, (this.openPathCounts.get(newPath) ?? 0) + oldCount);
 		}
 
-		this.view?.notifyRename(oldPath, newPath);  // update activeFilePath before redraw
+		this.notifyRenameInViews(oldPath, newPath);  // update activeFilePath before redraw
 		this.debouncedPersist();   // was: this.persistData() — debounce for bulk folder moves
-		this.view?.redraw();
+		this.redrawViews();
 	}
 
 	handleDelete(path: string): void {
 		if (!this.files[path]) return;
 		delete this.files[path];
 		this.persistData();
-		this.view?.redraw();
+		this.redrawViews();
 	}
 
 	removeEntry(path: string): void {
 		delete this.files[path];
+	}
+
+	private getZoxidianViews(): ZoxidianView[] {
+		return this.app.workspace.getLeavesOfType(VIEW_TYPE_ZOXIDIAN)
+			.map(leaf => leaf.view)
+			.filter((view): view is ZoxidianView => view instanceof ZoxidianView);
+	}
+
+	redrawViews(): void {
+		for (const view of this.getZoxidianViews()) {
+			view.redraw();
+		}
+	}
+
+	private notifyRenameInViews(oldPath: string, newPath: string): void {
+		for (const view of this.getZoxidianViews()) {
+			view.notifyRename(oldPath, newPath);
+		}
 	}
 
 	// -------------------------------------------------------------------------

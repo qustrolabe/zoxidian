@@ -1,7 +1,7 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
 import ZoxidianPlugin from "./main";
 import { applyAging } from "./frecency";
-import { FILE_ICON_SVG } from "./utils";
+import { appendFileIcon } from "./utils";
 
 export interface ZoxidianSettings {
 	maxItems: number;
@@ -43,7 +43,6 @@ export class ZoxidianSettingTab extends PluginSettingTab {
 		// is always in place before it's ever called.
 		let updatePreview: () => void = () => {};
 
-		containerEl.createEl("h2", { text: "Zoxidian" });
 		containerEl.createEl("p", {
 			cls: "zoxidian-settings-desc",
 			text: "Tracks note visits using the zoxide frecency algorithm. Each visit increments the base score; the displayed frecency score is weighted by recency.",
@@ -61,7 +60,7 @@ export class ZoxidianSettingTab extends PluginSettingTab {
 						if (!isNaN(num) && num > 0) {
 							this.plugin.settings.maxItems = num;
 							await this.plugin.persistData();
-							this.plugin.view?.redraw();
+							this.plugin.redrawViews();
 						}
 					})
 			);
@@ -78,7 +77,7 @@ export class ZoxidianSettingTab extends PluginSettingTab {
 					.onChange(async (value) => {
 						this.plugin.settings.excludePaths = value;
 						await this.plugin.persistData();
-						this.plugin.view?.redraw();
+						this.plugin.redrawViews();
 					})
 			);
 
@@ -136,7 +135,7 @@ export class ZoxidianSettingTab extends PluginSettingTab {
 					.onChange(async (value) => {
 						this.plugin.settings.showFrecencyBadge = value;
 						await this.plugin.persistData();
-						this.plugin.view?.redraw();
+						this.plugin.redrawViews();
 						updatePreview();
 					})
 			);
@@ -150,14 +149,14 @@ export class ZoxidianSettingTab extends PluginSettingTab {
 					.onChange(async (value) => {
 						this.plugin.settings.showScoreBadge = value;
 						await this.plugin.persistData();
-						this.plugin.view?.redraw();
+						this.plugin.redrawViews();
 						updatePreview();
 					})
 			);
 
 		// ---- Live preview ----
 
-		containerEl.createEl("h3", { text: "Preview" });
+		new Setting(containerEl).setName("Preview").setHeading();
 		containerEl.createEl("p", {
 			cls: "zoxidian-settings-desc",
 			text: "How a note row looks with your current badge settings.",
@@ -171,7 +170,7 @@ export class ZoxidianSettingTab extends PluginSettingTab {
 			const row = previewWrap.createEl("div", { cls: "zoxidian-item" });
 
 			const iconWrap = row.createEl("span", { cls: "zoxidian-item-icon" });
-			iconWrap.innerHTML = FILE_ICON_SVG;
+			appendFileIcon(iconWrap);
 
 			row.createEl("span", {
 				cls: "zoxidian-item-name",
@@ -199,7 +198,7 @@ export class ZoxidianSettingTab extends PluginSettingTab {
 
 		// ---- Aging ----
 
-		containerEl.createEl("h3", { text: "Aging" });
+		new Setting(containerEl).setName("Aging").setHeading();
 
 		let updateStats: () => void = () => {};
 
@@ -232,7 +231,7 @@ export class ZoxidianSettingTab extends PluginSettingTab {
 								this.plugin.settings.maxAge = num;
 								applyAging(this.plugin.files, num);
 								await this.plugin.persistData();
-								this.plugin.view?.redraw();
+								this.plugin.redrawViews();
 								updateStats();
 							}
 						} else {
@@ -244,13 +243,13 @@ export class ZoxidianSettingTab extends PluginSettingTab {
 			.addButton((btn) => {
 				btn.setButtonText("Apply").setWarning();
 				applyBtnEl = btn.buttonEl;
-				applyBtnEl.style.display = "none";
+				applyBtnEl.addClass("zoxidian-hidden");
 				btn.onClick(async () => {
 					if (pendingMaxAge === null) return;
 					this.plugin.settings.maxAge = pendingMaxAge;
 					applyAging(this.plugin.files, pendingMaxAge);
 					await this.plugin.persistData();
-					this.plugin.view?.redraw();
+					this.plugin.redrawViews();
 					updateStats();
 					pendingMaxAge = null;
 					hideWarning();
@@ -258,7 +257,7 @@ export class ZoxidianSettingTab extends PluginSettingTab {
 			});
 
 		const maxAgeWarningEl = containerEl.createEl("p", { cls: "zoxidian-maxage-warning" });
-		maxAgeWarningEl.style.display = "none";
+		maxAgeWarningEl.addClass("zoxidian-hidden");
 
 			showWarning = (num: number, total: number) => {
 				const scale = (num * 0.9) / total;
@@ -268,13 +267,13 @@ export class ZoxidianSettingTab extends PluginSettingTab {
 				`Reducing to ${num} will prune ${pruneCount} note(s) ` +
 				`(current total: ${total.toFixed(1)}).`
 			);
-			maxAgeWarningEl.style.display = "";
-			if (applyBtnEl) applyBtnEl.style.display = "";
+			maxAgeWarningEl.removeClass("zoxidian-hidden");
+			if (applyBtnEl) applyBtnEl.removeClass("zoxidian-hidden");
 		};
 
 		hideWarning = () => {
-			maxAgeWarningEl.style.display = "none";
-			if (applyBtnEl) applyBtnEl.style.display = "none";
+			maxAgeWarningEl.addClass("zoxidian-hidden");
+			if (applyBtnEl) applyBtnEl.addClass("zoxidian-hidden");
 		};
 
 		// Stats
@@ -294,21 +293,21 @@ export class ZoxidianSettingTab extends PluginSettingTab {
 				cell.createEl("span", { cls: "zoxidian-stat-label", text: label });
 			};
 
-			addStat("tracked notes", String(count));
-			addStat("total score", `${total.toFixed(1)} / ${this.plugin.settings.maxAge}`);
-			addStat("age pool used", `${pct.toFixed(1)}%`);
+			addStat("Tracked notes", String(count));
+			addStat("Total score", `${total.toFixed(1)} / ${this.plugin.settings.maxAge}`);
+			addStat("Age pool used", `${pct.toFixed(1)}%`);
 
 			// Progress bar
 			const barWrap = statsEl.createEl("div", { cls: "zoxidian-age-bar-wrap" });
 			const bar = barWrap.createEl("div", { cls: "zoxidian-age-bar" });
-			bar.style.width = `${pct}%`;
+			bar.setCssProps({ "--zoxidian-age-pct": `${pct}%` });
 		};
 
 		updateStats();
 
 		// ---- Algorithm ----
 
-		containerEl.createEl("h3", { text: "How it works" });
+		new Setting(containerEl).setName("How it works").setHeading();
 
 		const algoEl = containerEl.createEl("div", { cls: "zoxidian-algo" });
 
@@ -361,7 +360,7 @@ export class ZoxidianSettingTab extends PluginSettingTab {
 
 		// ---- Data management ----
 
-		containerEl.createEl("h3", { text: "Data management" });
+		new Setting(containerEl).setName("Data management").setHeading();
 
 		new Setting(containerEl)
 			.setName("Clear all data")
@@ -372,7 +371,7 @@ export class ZoxidianSettingTab extends PluginSettingTab {
 					.setWarning()
 					.onClick(async () => {
 						this.plugin.clearData();
-						this.plugin.view?.redraw();
+						this.plugin.redrawViews();
 						updateStats();
 					})
 			);

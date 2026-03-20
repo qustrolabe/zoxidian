@@ -1,7 +1,7 @@
 import { ItemView, Menu, TFile, WorkspaceLeaf } from "obsidian";
 import { VIEW_TYPE_ZOXIDIAN } from "./types";
 import { getFrecency } from "./frecency";
-import { formatScore, FILE_ICON_SVG } from "./utils";
+import { formatScore, appendFileIcon } from "./utils";
 import type ZoxidianPlugin from "./main";
 
 export class ZoxidianView extends ItemView {
@@ -86,7 +86,7 @@ export class ZoxidianView extends ItemView {
 
 				// File icon
 				const iconWrap = row.createEl("span", { cls: "zoxidian-item-icon" });
-				iconWrap.innerHTML = FILE_ICON_SVG;
+				appendFileIcon(iconWrap);
 
 				// Note name
 				row.createEl("span", {

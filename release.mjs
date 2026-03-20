@@ -22,7 +22,20 @@ const next =
 // Update files
 pkg.version      = next;
 manifest.version = next;
-versions[next]   = manifest.minAppVersion;
+
+// Only add a versions.json entry when minAppVersion changes.
+const versionKeys = Object.keys(versions).sort((a, b) => {
+	const [am, an, ap] = a.split(".").map(Number);
+	const [bm, bn, bp] = b.split(".").map(Number);
+	if (am !== bm) return am - bm;
+	if (an !== bn) return an - bn;
+	return ap - bp;
+});
+const lastKey = versionKeys[versionKeys.length - 1];
+const lastMin = lastKey ? versions[lastKey] : null;
+if (manifest.minAppVersion !== lastMin) {
+	versions[next] = manifest.minAppVersion;
+}
 
 writeFileSync("package.json", JSON.stringify(pkg,      null, "\t") + "\n");
 writeFileSync("manifest.json", JSON.stringify(manifest, null, "\t") + "\n");

@@ -178,6 +178,7 @@
 	border-radius: 2px;
 	transition: width 300ms ease;
 	min-width: 2px;
+	width: var(--zoxidian-age-pct, 0%);
 }
 
 /* ---- Algorithm explanation ---- */
@@ -237,6 +238,10 @@
 	font-size: var(--font-ui-small);
 	margin: 0 0 8px;
 	line-height: 1.4;
+}
+
+.zoxidian-hidden {
+	display: none;
 }
 
 /* ============================================================

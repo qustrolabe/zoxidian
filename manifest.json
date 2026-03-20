@@ -2,8 +2,8 @@
 	"id": "zoxidian",
 	"name": "Zoxidian",
 	"version": "1.2.0",
-	"minAppVersion": "1.7.2",
-	"description": "Tracks visited notes with zoxide-style frecency scoring and shows them in a sidebar panel.",
+	"minAppVersion": "1.12.4",
+	"description": "Track and list visited notes with zoxide frecency scoring algorithm",
 	"author": "qustrolabe",
 	"authorUrl": "https://github.com/qustrolabe",
 	"isDesktopOnly": false

@@ -42,7 +42,8 @@ function makePlugin() {
 	plugin.debouncedPersist = mock(() => {});
 	// Override async persistData so it never touches Obsidian's saveData().
 	plugin.persistData    = mock(async () => {});
-	plugin.view           = null;
+	plugin.redrawViews    = mock(() => {});
+	plugin.notifyRenameInViews = mock(() => {});
 	plugin.settings       = { ...DEFAULT_SETTINGS };
 	return plugin;
 }
@@ -54,7 +55,6 @@ function makePlugin() {
 describe("recordVisit", () => {
 	it("creates a new entry and persists/redraws for a fresh open", () => {
 		const plugin = makePlugin();
-		plugin.view = { redraw: mock(() => {}) };
 		const nowSpy = mock(() => 1234);
 		const realNow = Date.now;
 		(Date as any).now = nowSpy;
@@ -63,7 +63,7 @@ describe("recordVisit", () => {
 
 		expect(plugin.files["a.md"]).toEqual({ score: 1, lastAccess: 1234 });
 		expect(plugin.debouncedPersist).toHaveBeenCalledTimes(1);
-		expect(plugin.view.redraw).toHaveBeenCalledTimes(1);
+		expect(plugin.redrawViews).toHaveBeenCalledTimes(1);
 		(Date as any).now = realNow;
 	});
 
@@ -189,18 +189,16 @@ describe("handleRename", () => {
 		expect(plugin.persistData).not.toHaveBeenCalled();
 	});
 
-	it("calls view.notifyRename with old and new paths", () => {
+	it("notifies views before redraw after rename", () => {
 		const plugin = makePlugin();
 		plugin.files["a.md"] = { score: 1, lastAccess: 1 };
 		const callOrder: string[] = [];
-		plugin.view = {
-			notifyRename: mock((_o: string, _n: string) => { callOrder.push("notify"); }),
-			redraw:       mock(() => { callOrder.push("redraw"); }),
-		};
+		plugin.notifyRenameInViews = mock((_o: string, _n: string) => { callOrder.push("notify"); });
+		plugin.redrawViews = mock(() => { callOrder.push("redraw"); });
 
 		plugin.handleRename("a.md", "b.md");
 
-		expect(plugin.view.notifyRename).toHaveBeenCalledWith("a.md", "b.md");
+		expect(plugin.notifyRenameInViews).toHaveBeenCalledWith("a.md", "b.md");
 		// notify must precede redraw so activeFilePath is correct when the DOM renders
 		expect(callOrder).toEqual(["notify", "redraw"]);
 	});

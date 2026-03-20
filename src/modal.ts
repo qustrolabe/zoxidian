@@ -106,7 +106,8 @@ export class ZoxidianSearchModal extends SuggestModal<SortedEntry> {
 		const name = this.inputEl.value.trim();
 		if (!name) return;
 		this.close();
-		const path = name.endsWith(".md") ? name : `${name}.md`;
+		const rawPath = name.endsWith(".md") ? name : `${name}.md`;
+		const path = normalizePath(rawPath);
 
 		const openInLeaf = (file: TFile) => {
 			const mostRecent = this.app.workspace.getMostRecentLeaf();
