@@ -369,7 +369,7 @@ export class ZoxidianSettingTab extends PluginSettingTab {
 				btn
 					.setButtonText("Clear")
 					.setWarning()
-					.onClick(async () => {
+					.onClick(() => {
 						this.plugin.clearData();
 						this.plugin.redrawViews();
 						updateStats();
