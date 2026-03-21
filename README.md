@@ -1,4 +1,4 @@
-# zoxidian
+# Zoxide Notes (Zoxidian)
 
 An [Obsidian](https://obsidian.md) plugin that tracks which notes you visit and
 ranks them using the [zoxide](https://github.com/ajeetdsouza/zoxide) frecency
@@ -20,6 +20,6 @@ list in the sidebar. The plugin also adds a quick search modal, similar to
 
 1. Go to **Releases** and download the `zip` archive.
 2. Unzip it into your vault's plugin folder:
-   `<vault>/.obsidian/plugins/zoxidian/`.
+   `<vault>/.obsidian/plugins/zoxide-notes/`.
 3. In Obsidian: **Settings → Community plugins → Installed plugins** → enable
-   **Zoxidian**.
+   **Zoxide Notes**.

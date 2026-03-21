@@ -31,7 +31,7 @@ jobs:
         run: bun run build
 
       - name: Package zip
-        run: zip zoxidian.zip main.js manifest.json styles.css
+        run: zip zoxide-notes.zip main.js manifest.json styles.css
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -40,5 +40,5 @@ jobs:
             main.js
             manifest.json
             styles.css
-            zoxidian.zip
+            zoxide-notes.zip
           generate_release_notes: true

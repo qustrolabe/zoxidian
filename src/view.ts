@@ -14,7 +14,7 @@ export class ZoxidianView extends ItemView {
 	}
 
 	getViewType(): string   { return VIEW_TYPE_ZOXIDIAN; }
-	getDisplayText(): string { return "Zoxidian"; }
+	getDisplayText(): string { return "Zoxide Notes"; }
 	getIcon(): string        { return "history"; }
 
 	async onOpen(): Promise<void> {

@@ -36,11 +36,11 @@ export default class ZoxidianPlugin extends Plugin {
 			return new ZoxidianView(leaf, this);
 		});
 
-		this.addRibbonIcon("history", "Zoxidian", () => this.activateView());
+		this.addRibbonIcon("history", "Zoxide Notes", () => this.activateView());
 
 		this.addCommand({
 			id:   "open-panel",
-			name: "Open Zoxidian panel",
+			name: "Open Zoxide Notes panel",
 			callback: () => this.activateView(),
 		});
 

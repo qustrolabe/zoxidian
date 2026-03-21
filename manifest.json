@@ -1,6 +1,6 @@
 {
-	"id": "zoxidian",
-	"name": "Zoxidian",
+	"id": "zoxide-notes",
+	"name": "Zoxide Notes",
 	"version": "1.3.3",
 	"minAppVersion": "1.12.4",
 	"description": "Track and list visited notes with zoxide frecency scoring algorithm.",
