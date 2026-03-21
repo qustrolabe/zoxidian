@@ -1,6 +1,6 @@
 {
 	"name": "zoxide-notes",
-	"version": "1.3.3",
+	"version": "1.4.0",
 	"description": "Obsidian plugin that tracks visited notes with zoxide-style frecency scoring",
 	"main": "main.js",
 	"type": "module",
