@@ -1,4 +1,4 @@
-import { Plugin, TFile } from "obsidian";
+import { FileView, Plugin, TFile } from "obsidian";
 import { DEFAULT_SETTINGS, ZoxidianSettingTab, ZoxidianSettings } from "./settings";
 import { ZoxidianSearchModal } from "./modal";
 import { VIEW_TYPE_ZOXIDIAN, FileEntry } from "./types";
@@ -28,7 +28,7 @@ export default class ZoxidianPlugin extends Plugin {
 	// -------------------------------------------------------------------------
 
 	async onload() {
-		this.debouncedPersist = debounce(() => this.persistData(), 500);
+		this.debouncedPersist = debounce(() => { void this.persistData(); }, 500);
 
 		await this.initData();
 
@@ -36,11 +36,11 @@ export default class ZoxidianPlugin extends Plugin {
 			return new ZoxidianView(leaf, this);
 		});
 
-		this.addRibbonIcon("history", "Zoxide Notes", () => this.activateView());
+		this.addRibbonIcon("history", "Zoxide notes", () => this.activateView());
 
 		this.addCommand({
 			id:   "open-panel",
-			name: "Open Zoxide Notes panel",
+			name: "Open panel",
 			callback: () => this.activateView(),
 		});
 
@@ -86,7 +86,7 @@ export default class ZoxidianPlugin extends Plugin {
 	// Called only when the user explicitly enables the plugin — not on every
 	// app startup. The right place to reveal the leaf for the first time.
 	onUserEnable(): void {
-		this.app.workspace.ensureSideLeaf(VIEW_TYPE_ZOXIDIAN, "left", { reveal: true });
+		void this.app.workspace.ensureSideLeaf(VIEW_TYPE_ZOXIDIAN, "left", { reveal: true });
 	}
 
 	onunload() { /* Obsidian cleans up registered events */ }
@@ -94,9 +94,9 @@ export default class ZoxidianPlugin extends Plugin {
 	private rebuildOpenPathCounts(): void {
 		const next = new Map<string, number>();
 		this.app.workspace.iterateAllLeaves((leaf) => {
-			const f = (leaf.view as any)?.file;
-			if (f instanceof TFile) {
-				next.set(f.path, (next.get(f.path) ?? 0) + 1);
+			const view = leaf.view;
+			if (view instanceof FileView && view.file instanceof TFile) {
+				next.set(view.file.path, (next.get(view.file.path) ?? 0) + 1);
 			}
 		});
 		this.openPathCounts = next;
@@ -110,7 +110,7 @@ export default class ZoxidianPlugin extends Plugin {
 		const raw = (await this.loadData()) as Partial<PersistedData> | null;
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, raw?.settings ?? {});
 		this.files    = (typeof raw?.files === "object" && raw.files !== null && !Array.isArray(raw.files))
-			? raw.files as Record<string, FileEntry>
+			? raw.files
 			: {};
 	}
 
@@ -173,7 +173,7 @@ export default class ZoxidianPlugin extends Plugin {
 	handleDelete(path: string): void {
 		if (!this.files[path]) return;
 		delete this.files[path];
-		this.persistData();
+		void this.persistData();
 		this.redrawViews();
 	}
 
@@ -228,6 +228,6 @@ export default class ZoxidianPlugin extends Plugin {
 	// -------------------------------------------------------------------------
 
 	activateView(): void {
-		this.app.workspace.ensureSideLeaf(VIEW_TYPE_ZOXIDIAN, "left", { reveal: true });
+		void this.app.workspace.ensureSideLeaf(VIEW_TYPE_ZOXIDIAN, "left", { reveal: true });
 	}
 }

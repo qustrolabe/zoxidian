@@ -20,12 +20,16 @@ export class ZoxidianSearchModal extends SuggestModal<SortedEntry> {
 
 		// Route Ctrl+Enter and Ctrl+Alt+Enter through chooser so onChooseSuggestion
 		// receives the real event with modifier keys intact
+		const chooser = (this as unknown as SuggestModal<SortedEntry> & {
+			chooser: { useSelectedItem: (evt: KeyboardEvent) => void };
+		}).chooser;
+
 		this.scope.register(["Mod"], "Enter", (evt: KeyboardEvent) => {
-			(this as any).chooser.useSelectedItem(evt);
+			chooser.useSelectedItem(evt);
 			return false;
 		});
 		this.scope.register(["Mod", "Alt"], "Enter", (evt: KeyboardEvent) => {
-			(this as any).chooser.useSelectedItem(evt);
+			chooser.useSelectedItem(evt);
 			return false;
 		});
 		this.scope.register(["Shift"], "Enter", (_evt: KeyboardEvent) => {
@@ -44,7 +48,13 @@ export class ZoxidianSearchModal extends SuggestModal<SortedEntry> {
 
 			let excludeRegex: RegExp | null = null;
 			const ep = this.plugin.settings.excludePaths.trim();
-			if (ep) { try { excludeRegex = new RegExp(ep); } catch {} }
+			if (ep) {
+				try {
+					excludeRegex = new RegExp(ep);
+				} catch {
+					// Ignore invalid regex input.
+				}
+			}
 
 			const untracked = this.getUntrackedEntries(trackedPaths, excludeRegex);
 
@@ -74,7 +84,7 @@ export class ZoxidianSearchModal extends SuggestModal<SortedEntry> {
 		if (untracked) {
 			badges.createEl("span", {
 				cls: "zoxidian-badge zoxidian-badge-untracked",
-				text: "untracked",
+				text: "Untracked",
 			});
 		} else {
 			if (this.plugin.settings.showFrecencyBadge) {
@@ -99,7 +109,7 @@ export class ZoxidianSearchModal extends SuggestModal<SortedEntry> {
 			return;
 		}
 
-		this.pickLeaf(evt).openFile(file);
+		void this.pickLeaf(evt).openFile(file);
 	}
 
 	private createNote(): void {
@@ -114,7 +124,7 @@ export class ZoxidianSearchModal extends SuggestModal<SortedEntry> {
 			const leaf = (mostRecent && mostRecent.getRoot() === this.app.workspace.rootSplit)
 				? mostRecent
 				: this.app.workspace.getLeaf("tab");
-			leaf.openFile(file);
+			void leaf.openFile(file);
 		};
 
 		const existing = this.app.vault.getAbstractFileByPath(path);
@@ -123,7 +133,10 @@ export class ZoxidianSearchModal extends SuggestModal<SortedEntry> {
 			return;
 		}
 
-		this.app.vault.create(path, "").then(openInLeaf).catch(() => new Notice(`Could not create "${path}".`));
+		void this.app.vault
+			.create(path, "")
+			.then(openInLeaf)
+			.catch(() => new Notice(`Could not create "${path}".`));
 	}
 
 	private getUntrackedEntries(trackedPaths: Set<string>, excludeRegex: RegExp | null): SortedEntry[] {
@@ -213,8 +226,9 @@ export class ZoxidianSearchModal extends SuggestModal<SortedEntry> {
 
 	private createMissingNote(path: string, evt: MouseEvent | KeyboardEvent): void {
 		const leaf = this.pickLeaf(evt);
-		this.app.vault.create(path, "")
-			.then(file => leaf.openFile(file))
+		void this.app.vault
+			.create(path, "")
+			.then(file => void leaf.openFile(file))
 			.catch(() => new Notice(`Could not create "${path}".`));
 	}
 }

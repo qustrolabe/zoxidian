@@ -68,11 +68,11 @@ export class ZoxidianSettingTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName("Exclude paths (regex)")
 			.setDesc(
-				"Notes whose path matches this regex are excluded. Example: ^Daily/"
+				"Notes whose path matches this regex are excluded. Example: ^daily/"
 			)
 			.addText((text) =>
 				text
-					.setPlaceholder("^Daily/")
+					.setPlaceholder("^daily/")
 					.setValue(this.plugin.settings.excludePaths)
 					.onChange(async (value) => {
 						this.plugin.settings.excludePaths = value;
@@ -174,7 +174,7 @@ export class ZoxidianSettingTab extends PluginSettingTab {
 
 			row.createEl("span", {
 				cls: "zoxidian-item-name",
-				text: "Example Note",
+				text: "Example note",
 			});
 
 			const badges = row.createEl("span", { cls: "zoxidian-badges" });

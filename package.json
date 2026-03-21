@@ -8,14 +8,18 @@
 		"dev": "bun esbuild.config.mjs",
 		"build": "tsc -noEmit -skipLibCheck && bun esbuild.config.mjs production",
 		"test": "bun test",
-		"release": "bun release.mjs"
+		"release": "bun release.mjs",
+		"lint": "eslint src tests release.mjs"
 	},
 	"keywords": [],
 	"license": "MIT",
 	"devDependencies": {
 		"@types/node": "^16.11.6",
+		"@typescript-eslint/parser": "^8.57.1",
 		"bun-types": "latest",
 		"esbuild": "0.25.5",
+		"eslint": "^10.1.0",
+		"eslint-plugin-obsidianmd": "^0.1.9",
 		"tslib": "2.4.0",
 		"typescript": "^5.8.3"
 	},

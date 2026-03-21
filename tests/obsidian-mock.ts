@@ -1,9 +1,12 @@
 import { mock } from "bun:test";
 
 // Single shared Obsidian mock to avoid order-dependent test failures.
-mock.module("obsidian", () => ({
+void mock.module("obsidian", () => ({
 	App: class {},
 	ItemView: class {},
+	FileView: class {
+		file: any = null;
+	},
 	Menu: class {},
 	Modal: class {},
 	Plugin: class {},

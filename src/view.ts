@@ -1,6 +1,5 @@
 import { ItemView, Menu, TFile, WorkspaceLeaf } from "obsidian";
 import { VIEW_TYPE_ZOXIDIAN } from "./types";
-import { getFrecency } from "./frecency";
 import { formatScore, appendFileIcon } from "./utils";
 import type ZoxidianPlugin from "./main";
 
@@ -14,10 +13,10 @@ export class ZoxidianView extends ItemView {
 	}
 
 	getViewType(): string   { return VIEW_TYPE_ZOXIDIAN; }
-	getDisplayText(): string { return "Zoxide Notes"; }
+	getDisplayText(): string { return "Zoxide notes"; }
 	getIcon(): string        { return "history"; }
 
-	async onOpen(): Promise<void> {
+	onOpen(): Promise<void> {
 		// Seed with whatever is already open.
 		this.activeFilePath = this.app.workspace.getActiveFile()?.path ?? null;
 		this.redraw();
@@ -38,9 +37,12 @@ export class ZoxidianView extends ItemView {
 				}
 			})
 		);
+		return Promise.resolve();
 	}
 
-	async onClose(): Promise<void> { /* nothing */ }
+	onClose(): Promise<void> {
+		return Promise.resolve();
+	}
 
 	// Called by the plugin's handleRename before redraw() so the active
 	// highlight reflects the new path in the same render pass.
@@ -54,7 +56,7 @@ export class ZoxidianView extends ItemView {
 		// getLeaf(false) is Obsidian's standard "open in appropriate leaf":
 		// reuses the most recent non-pinned main-area leaf, never touches
 		// sidebar or pinned leaves — same behaviour as the built-in Files panel.
-		this.app.workspace.getLeaf(false).openFile(file);
+		void this.app.workspace.getLeaf(false).openFile(file);
 	}
 
 	redraw(): void {
@@ -127,7 +129,7 @@ export class ZoxidianView extends ItemView {
 						: e.ctrlKey || e.metaKey;
 
 					if (newTab) {
-						this.app.workspace.getLeaf("tab").openFile(file);
+						void this.app.workspace.getLeaf("tab").openFile(file);
 					} else {
 						this.openOrReveal(file);
 					}
@@ -150,7 +152,7 @@ export class ZoxidianView extends ItemView {
 							.setTitle("Open in new tab")
 							.setIcon("file-plus")
 							.onClick(() =>
-								this.app.workspace.getLeaf("tab").openFile(file)
+								void this.app.workspace.getLeaf("tab").openFile(file)
 							)
 					);
 
@@ -159,7 +161,7 @@ export class ZoxidianView extends ItemView {
 							.setTitle("Open to the right")
 							.setIcon("separator-vertical")
 							.onClick(() =>
-								this.app.workspace.getLeaf("split").openFile(file)
+								void this.app.workspace.getLeaf("split").openFile(file)
 							)
 					);
 
